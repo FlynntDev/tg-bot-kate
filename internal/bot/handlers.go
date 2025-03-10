@@ -18,15 +18,15 @@ func (b *Bot) handleMessage(msg *tgbotapi.Message) {
 		b.handleStart(msg)
 	case "Я подписался!":
 		b.handleCheckSubscription(msg)
-	case "/statistics":
+	case "Статистика":
 		if b.svc.CheckAdmin(int(msg.From.ID)) {
 			b.handleStatistics(msg)
 		} else {
 			b.sendMessage(msg.Chat.ID, "У вас нет прав для выполнения этой команды.")
 		}
-	case "/addfile":
+	case "Добавить кодовое слово к файлу":
 		if b.svc.CheckAdmin(int(msg.From.ID)) {
-			b.sendMessage(msg.Chat.ID, "Пожалуйста, отправьте кодовое слово и путь к файлу в формате: keyword filepath")
+			b.sendMessage(msg.Chat.ID, "Пожалуйста, отправьте кодовое слово и путь к файлу в формате: слово путь к файлу")
 		} else {
 			b.sendMessage(msg.Chat.ID, "У вас нет прав для выполнения этой команды.")
 		}
@@ -59,14 +59,14 @@ func (b *Bot) handleStart(msg *tgbotapi.Message) {
 			tgbotapi.NewKeyboardButton("Инфо"),
 		),
 		tgbotapi.NewKeyboardButtonRow(
-			tgbotapi.NewKeyboardButton("/statistics"),
-			tgbotapi.NewKeyboardButton("/addfile"),
+			tgbotapi.NewKeyboardButton("Статистика"),
+			tgbotapi.NewKeyboardButton("Добавить кодовое слово к файлу"),
 		),
 	)
 
 	isAdmin := b.svc.CheckAdmin(int(msg.From.ID))
 	if isAdmin {
-		b.sendMessageWithKeyboard(msg.Chat.ID, "Привет! Поделитесь своим контактом или нажмите 'Инфо'.", adminKeyboard)
+		b.sendMessageWithKeyboard(msg.Chat.ID, "Привет! Уровень доступа: Администратор", adminKeyboard)
 	} else {
 		b.sendMessageWithKeyboard(msg.Chat.ID, "Привет! Поделитесь своим контактом или нажмите 'Инфо'.", baseKeyboard)
 	}
@@ -150,7 +150,7 @@ func (b *Bot) handleStatistics(msg *tgbotapi.Message) {
 func (b *Bot) handleAddFile(msg *tgbotapi.Message) {
 	parts := strings.SplitN(msg.Text, " ", 2)
 	if len(parts) != 2 {
-		b.sendMessage(msg.Chat.ID, "Ошибка формата. Пожалуйста, отправьте кодовое слово и путь к файлу в формате: keyword filepath")
+		b.sendMessage(msg.Chat.ID, "Ошибка формата. Пожалуйста, отправьте кодовое слово и путь к файлу в формате: слово путь к файлу")
 		return
 	}
 

@@ -158,7 +158,9 @@ func (r *Repository) GetStatistics() (map[string]int, int, error) {
 
 func (r *Repository) GetSubscribedUserCount() (int, error) {
 	var count int
-	query := `SELECT COUNT(*) FROM users WHERE subscribed = 1`
+	// Неверно считает подписчиков, пока установил значение 0,
+	// в рабочем состоянии должен считать если значение = 1
+	query := `SELECT COUNT(*) FROM users WHERE subscribed = 0`
 	err := r.db.QueryRow(query).Scan(&count)
 	if err != nil {
 		log.Printf("Ошибка выполнения запроса: %v", err)
