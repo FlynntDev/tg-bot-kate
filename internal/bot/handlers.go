@@ -2,6 +2,7 @@ package bot
 
 import (
 	"fmt"
+	"log"
 	"strings"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
@@ -113,6 +114,11 @@ func (b *Bot) handleCheckSubscription(msg *tgbotapi.Message) {
 func (b *Bot) handleKeyword(msg *tgbotapi.Message) {
 	filePath, valid := b.svc.ValidateKeyword(msg.Text)
 	if valid {
+		err := b.svc.IncrementKeywordCount(msg.Text)
+		if err != nil {
+			b.sendMessage(msg.Chat.ID, "Ошибка увеличения счетчика использования ключевого слова.")
+			return
+		}
 		b.sendFile(msg.Chat.ID, filePath)
 	} else {
 		b.sendMessage(msg.Chat.ID, "Неверное кодовое слово, попробуйте еще раз.")
@@ -120,8 +126,21 @@ func (b *Bot) handleKeyword(msg *tgbotapi.Message) {
 }
 
 func (b *Bot) handleStatistics(msg *tgbotapi.Message) {
-	stats, totalUsers := b.svc.GetStatistics()
-	response := fmt.Sprintf("Всего пользователей: %d\n", totalUsers)
+	stats, _, err := b.svc.GetStatistics()
+	if err != nil {
+		b.sendMessage(msg.Chat.ID, "Ошибка получения статистики.")
+		log.Printf("Ошибка получения статистики: %v", err)
+		return
+	}
+
+	subscribedUserCount, err := b.svc.GetSubscribedUserCount()
+	if err != nil {
+		b.sendMessage(msg.Chat.ID, "Ошибка получения количества подписанных пользователей.")
+		log.Printf("Ошибка получения количества подписанных пользователей: %v", err)
+		return
+	}
+
+	response := fmt.Sprintf("Всего подписанных пользователей: %d\n", subscribedUserCount)
 	for keyword, count := range stats {
 		response += fmt.Sprintf("Кодовое слово: %s — использовано %d раз\n", keyword, count)
 	}

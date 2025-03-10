@@ -32,6 +32,19 @@ func (s *Service) KeywordExists(keyword string) (bool, string) {
 	return s.repo.KeywordExists(keyword)
 }
 
+func (s *Service) IncrementKeywordCount(keyword string) error {
+	return s.repo.IncrementKeywordCount(keyword)
+}
+
+func (s *Service) GetStatistics() (map[string]int, int, error) {
+	stats, totalUsers, err := s.repo.GetStatistics()
+	if err != nil {
+		log.Printf("Ошибка получения статистики: %v", err)
+		return nil, 0, err
+	}
+	return stats, totalUsers, nil
+}
+
 func (s *Service) CheckAdmin(userID int) bool {
 	url := fmt.Sprintf("https://api.telegram.org/bot%s/getChatMember?chat_id=%s&user_id=%d", s.BotToken, s.ChannelUsername, userID)
 	resp, err := http.Get(url)
@@ -70,10 +83,6 @@ func (s *Service) CheckAdmin(userID int) bool {
 
 func (s *Service) SetAdmin(userID int, admin bool) error {
 	return s.repo.SetAdmin(userID, admin)
-}
-
-func (s *Service) GetStatistics() (map[string]int, int) {
-	return map[string]int{}, 0
 }
 
 func (s *Service) SaveContact(userID int, contact string) error {
@@ -122,4 +131,8 @@ func (s *Service) AddKeywordFile(keyword string, filePath string) error {
 		return fmt.Errorf("Слово уже существует: %s", path)
 	}
 	return s.repo.AddKeywordFile(keyword, filePath)
+}
+
+func (s *Service) GetSubscribedUserCount() (int, error) {
+	return s.repo.GetSubscribedUserCount()
 }

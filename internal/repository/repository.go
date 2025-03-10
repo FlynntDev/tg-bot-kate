@@ -2,6 +2,7 @@ package repository
 
 import (
 	"database/sql"
+	"log"
 
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -26,7 +27,8 @@ func createTables(db *sql.DB) {
     CREATE TABLE IF NOT EXISTS files (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         keyword TEXT NOT NULL,
-        file_path TEXT NOT NULL
+        file_path TEXT NOT NULL,
+        count INTEGER DEFAULT 0
     );
     CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -115,4 +117,52 @@ func (r *Repository) SetAdmin(userID int, admin bool) error {
 	query := `UPDATE users SET admin = ? WHERE user_id = ?`
 	_, err := r.db.Exec(query, admin, userID)
 	return err
+}
+
+func (r *Repository) IncrementKeywordCount(keyword string) error {
+	query := `UPDATE files SET count = count + 1 WHERE keyword = ?`
+	_, err := r.db.Exec(query, keyword)
+	return err
+}
+
+func (r *Repository) GetStatistics() (map[string]int, int, error) {
+	stats := make(map[string]int)
+	query := `SELECT keyword, count FROM files`
+	rows, err := r.db.Query(query)
+	if err != nil {
+		log.Printf("Ошибка выполнения запроса: %v", err)
+		return nil, 0, err
+	}
+	defer rows.Close()
+
+	var totalUsers int
+	for rows.Next() {
+		var keyword string
+		var count int
+		err := rows.Scan(&keyword, &count)
+		if err != nil {
+			log.Printf("Ошибка сканирования строки: %v", err)
+			return nil, 0, err
+		}
+		stats[keyword] = count
+		totalUsers += count
+	}
+
+	if err = rows.Err(); err != nil {
+		log.Printf("Ошибка итерации строк: %v", err)
+		return nil, 0, err
+	}
+
+	return stats, totalUsers, nil
+}
+
+func (r *Repository) GetSubscribedUserCount() (int, error) {
+	var count int
+	query := `SELECT COUNT(*) FROM users WHERE subscribed = 1`
+	err := r.db.QueryRow(query).Scan(&count)
+	if err != nil {
+		log.Printf("Ошибка выполнения запроса: %v", err)
+		return 0, err
+	}
+	return count, nil
 }
