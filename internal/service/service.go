@@ -67,7 +67,7 @@ func (s *Service) CheckAdmin(userID int) bool {
 		return false
 	}
 
-	log.Printf("Статус пользователя в канале: %s", result.Result.Status)
+	log.Printf("Статус пользователя %d в канале: %s", userID, result.Result.Status)
 	if result.Result.Status == "administrator" || result.Result.Status == "creator" {
 		_ = s.SetAdmin(userID, true)
 		return true
@@ -90,7 +90,7 @@ func (s *Service) AddUserIfNotExists(userID int) error {
 
 func (s *Service) CheckSubscription(userID int) (bool, error) {
 	url := fmt.Sprintf("https://api.telegram.org/bot%s/getChatMember?chat_id=%s&user_id=%d", s.BotToken, s.ChannelUsername, userID)
-	log.Printf("Проверка подписки: URL = %s", url)
+	log.Printf("Проверка подписки пользователя %d: URL = %s", userID, url)
 	resp, err := http.Get(url)
 	if err != nil {
 		log.Printf("Ошибка запроса к API: %v", err)
@@ -116,7 +116,7 @@ func (s *Service) CheckSubscription(userID int) (bool, error) {
 		return false, err
 	}
 
-	log.Printf("Статус подписки пользователя: %s", result.Result.Status)
+	log.Printf("Статус подписки пользователя %d: %s", userID, result.Result.Status)
 	subscribed := result.Result.Status == "member" || result.Result.Status == "administrator" || result.Result.Status == "creator"
 	if subscribed {
 		_ = s.UpdateSubscription(userID, true)
