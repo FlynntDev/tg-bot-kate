@@ -37,12 +37,7 @@ func (s *Service) IncrementKeywordCount(keyword string) error {
 }
 
 func (s *Service) GetStatistics() (map[string]int, int, error) {
-	stats, totalUsers, err := s.repo.GetStatistics()
-	if err != nil {
-		log.Printf("Ошибка получения статистики: %v", err)
-		return nil, 0, err
-	}
-	return stats, totalUsers, nil
+	return s.repo.GetStatistics()
 }
 
 func (s *Service) CheckAdmin(userID int) bool {
@@ -72,7 +67,7 @@ func (s *Service) CheckAdmin(userID int) bool {
 		return false
 	}
 
-	log.Printf("Статус пользователя в канале: %s", result.Result.Status)
+	log.Printf("Статус пользователя %d в канале: %s", userID, result.Result.Status)
 	if result.Result.Status == "administrator" || result.Result.Status == "creator" {
 		_ = s.SetAdmin(userID, true)
 		return true
@@ -89,9 +84,13 @@ func (s *Service) SaveContact(userID int, contact string) error {
 	return s.repo.SaveContact(userID, contact)
 }
 
+func (s *Service) AddUserIfNotExists(userID int) error {
+	return s.repo.AddUserIfNotExists(userID)
+}
+
 func (s *Service) CheckSubscription(userID int) (bool, error) {
 	url := fmt.Sprintf("https://api.telegram.org/bot%s/getChatMember?chat_id=%s&user_id=%d", s.BotToken, s.ChannelUsername, userID)
-	log.Printf("Проверка подписки: URL = %s", url)
+	log.Printf("Проверка подписки пользователя %d:", userID)
 	resp, err := http.Get(url)
 	if err != nil {
 		log.Printf("Ошибка запроса к API: %v", err)
@@ -117,12 +116,20 @@ func (s *Service) CheckSubscription(userID int) (bool, error) {
 		return false, err
 	}
 
-	log.Printf("Статус подписки пользователя: %s", result.Result.Status)
-	return result.Result.Status == "member" || result.Result.Status == "administrator" || result.Result.Status == "creator", nil
+	log.Printf("Статус подписки пользователя %d: %s", userID, result.Result.Status)
+	subscribed := result.Result.Status == "member" || result.Result.Status == "administrator" || result.Result.Status == "creator"
+	if subscribed {
+		_ = s.UpdateSubscription(userID, true)
+	}
+	return subscribed, nil
 }
 
 func (s *Service) UpdateSubscription(userID int, subscribed bool) error {
 	return s.repo.UpdateSubscription(userID, subscribed)
+}
+
+func (s *Service) GetSubscribedUserCount() (int, error) {
+	return s.repo.GetSubscribedUserCount()
 }
 
 func (s *Service) AddKeywordFile(keyword string, filePath string) error {
@@ -131,8 +138,4 @@ func (s *Service) AddKeywordFile(keyword string, filePath string) error {
 		return fmt.Errorf("Слово уже существует: %s", path)
 	}
 	return s.repo.AddKeywordFile(keyword, filePath)
-}
-
-func (s *Service) GetSubscribedUserCount() (int, error) {
-	return s.repo.GetSubscribedUserCount()
 }

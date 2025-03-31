@@ -18,15 +18,15 @@ func (b *Bot) handleMessage(msg *tgbotapi.Message) {
 		b.handleStart(msg)
 	case "Я подписался!":
 		b.handleCheckSubscription(msg)
-	case "/statistics":
+	case "Статистика":
 		if b.svc.CheckAdmin(int(msg.From.ID)) {
 			b.handleStatistics(msg)
 		} else {
 			b.sendMessage(msg.Chat.ID, "У вас нет прав для выполнения этой команды.")
 		}
-	case "/addfile":
+	case "Добавить кодовое слово":
 		if b.svc.CheckAdmin(int(msg.From.ID)) {
-			b.sendMessage(msg.Chat.ID, "Пожалуйста, отправьте кодовое слово и путь к файлу в формате: keyword filepath")
+			b.sendMessage(msg.Chat.ID, "Пожалуйста, отправьте кодовое слово и путь к файлу в формате: слово /путь к файлу. Пример: test test.txt")
 		} else {
 			b.sendMessage(msg.Chat.ID, "У вас нет прав для выполнения этой команды.")
 		}
@@ -44,57 +44,24 @@ func (b *Bot) handleMessage(msg *tgbotapi.Message) {
 }
 
 func (b *Bot) handleStart(msg *tgbotapi.Message) {
-	baseKeyboard := tgbotapi.NewReplyKeyboard(
-		tgbotapi.NewKeyboardButtonRow(
-			tgbotapi.NewKeyboardButtonContact("Поделиться контактом"),
-		),
-		tgbotapi.NewKeyboardButtonRow(
-			tgbotapi.NewKeyboardButton("Инфо"),
-		),
-	)
+	userID := int(msg.From.ID)
+	_ = b.svc.AddUserIfNotExists(userID)
 
-	adminKeyboard := tgbotapi.NewReplyKeyboard(
-		tgbotapi.NewKeyboardButtonRow(
-			tgbotapi.NewKeyboardButtonContact("Поделиться контактом"),
-			tgbotapi.NewKeyboardButton("Инфо"),
-		),
-		tgbotapi.NewKeyboardButtonRow(
-			tgbotapi.NewKeyboardButton("/statistics"),
-			tgbotapi.NewKeyboardButton("/addfile"),
-		),
-	)
-
-	isAdmin := b.svc.CheckAdmin(int(msg.From.ID))
+	isAdmin := b.svc.CheckAdmin(userID)
 	if isAdmin {
-		b.sendMessageWithKeyboard(msg.Chat.ID, "Привет! Поделитесь своим контактом или нажмите 'Инфо'.", adminKeyboard)
+		b.sendMessage(msg.Chat.ID, "Привет, администратор!")
 	} else {
-		b.sendMessageWithKeyboard(msg.Chat.ID, "Привет! Поделитесь своим контактом или нажмите 'Инфо'.", baseKeyboard)
-	}
-}
+		b.sendMessage(msg.Chat.ID, "Привет, рад тебя видеть в нашем боте")
 
-func (b *Bot) handleContact(msg *tgbotapi.Message) {
-	err := b.svc.SaveContact(int(msg.From.ID), msg.Contact.PhoneNumber)
-	if err != nil {
-		b.sendMessage(msg.Chat.ID, "Ошибка сохранения контакта.")
-		return
 	}
 
-	subscribed, err := b.svc.CheckSubscription(int(msg.From.ID))
-	if err != nil {
-		b.sendMessage(msg.Chat.ID, "Ошибка проверки подписки.")
-		return
-	}
-
-	if subscribed {
-		b.sendMessage(msg.Chat.ID, "Вы уже подписаны на канал. Введите кодовое слово.")
-	} else {
-		keyboard := tgbotapi.NewReplyKeyboard(
-			tgbotapi.NewKeyboardButtonRow(
-				tgbotapi.NewKeyboardButton("Я подписался!"),
-			),
-		)
-		b.sendMessageWithKeyboard(msg.Chat.ID, fmt.Sprintf("Спасибо! Подпишитесь на канал: https://t.me/%s и нажмите кнопку 'Я подписался!'", b.svc.ChannelUsername), keyboard)
-	}
+	channelUsername := strings.TrimPrefix(b.svc.ChannelUsername, "@")
+	keyboard := tgbotapi.NewReplyKeyboard(
+		tgbotapi.NewKeyboardButtonRow(
+			tgbotapi.NewKeyboardButton("Я подписался!"),
+		),
+	)
+	b.sendMessageWithKeyboard(msg.Chat.ID, fmt.Sprintf("Подпишись на канал для продолжения: https://t.me/%s", channelUsername), keyboard)
 }
 
 func (b *Bot) handleCheckSubscription(msg *tgbotapi.Message) {
@@ -104,11 +71,45 @@ func (b *Bot) handleCheckSubscription(msg *tgbotapi.Message) {
 		return
 	}
 
+	isAdmin := b.svc.CheckAdmin(int(msg.From.ID))
+
 	if subscribed {
-		b.sendMessage(msg.Chat.ID, "Подписка подтверждена! Введите кодовое слово.")
+		if isAdmin {
+			adminKeyboard := tgbotapi.NewReplyKeyboard(
+				tgbotapi.NewKeyboardButtonRow(
+					tgbotapi.NewKeyboardButtonContact("Поделиться контактом"),
+					tgbotapi.NewKeyboardButton("Инфо"),
+				),
+				tgbotapi.NewKeyboardButtonRow(
+					tgbotapi.NewKeyboardButton("Статистика"),
+					tgbotapi.NewKeyboardButton("Добавить кодовое слово"),
+				),
+			)
+			b.sendMessageWithKeyboard(msg.Chat.ID, "Подписка подтверждена! Введите кодовое слово.", adminKeyboard)
+		} else {
+			baseKeyboard := tgbotapi.NewReplyKeyboard(
+				tgbotapi.NewKeyboardButtonRow(
+					tgbotapi.NewKeyboardButtonContact("Поделиться контактом"),
+				),
+				tgbotapi.NewKeyboardButtonRow(
+					tgbotapi.NewKeyboardButton("Инфо"),
+				),
+			)
+			b.sendMessageWithKeyboard(msg.Chat.ID, "Подписка подтверждена! Введите кодовое слово.", baseKeyboard)
+		}
 	} else {
-		b.sendMessage(msg.Chat.ID, fmt.Sprintf("Пожалуйста, подпишитесь на канал: https://t.me/%s и нажмите кнопку 'Я подписался!'", b.svc.ChannelUsername))
+		channelUsername := strings.TrimPrefix(b.svc.ChannelUsername, "@")
+		b.sendMessage(msg.Chat.ID, fmt.Sprintf("Пожалуйста, подпишитесь на канал: https://t.me/%s и нажмите кнопку 'Я подписался!'", channelUsername))
 	}
+}
+
+func (b *Bot) handleContact(msg *tgbotapi.Message) {
+	err := b.svc.SaveContact(int(msg.From.ID), msg.Contact.PhoneNumber)
+	if err != nil {
+		b.sendMessage(msg.Chat.ID, "Ошибка сохранения контакта.")
+		return
+	}
+	b.sendMessage(msg.Chat.ID, "Спасибо за ваш контакт! Мы сохранили его для связи.")
 }
 
 func (b *Bot) handleKeyword(msg *tgbotapi.Message) {
@@ -150,7 +151,7 @@ func (b *Bot) handleStatistics(msg *tgbotapi.Message) {
 func (b *Bot) handleAddFile(msg *tgbotapi.Message) {
 	parts := strings.SplitN(msg.Text, " ", 2)
 	if len(parts) != 2 {
-		b.sendMessage(msg.Chat.ID, "Ошибка формата. Пожалуйста, отправьте кодовое слово и путь к файлу в формате: keyword filepath")
+		b.sendMessage(msg.Chat.ID, "Ошибка формата. Пожалуйста, отправьте кодовое слово и путь к файлу формате: слово /путь к файлу. Пример: test test.txt")
 		return
 	}
 
@@ -172,6 +173,7 @@ func (b *Bot) handleAddFile(msg *tgbotapi.Message) {
 	b.sendMessage(msg.Chat.ID, fmt.Sprintf("Файл %s успешно добавлен для кодового слова %s.", filePath, keyword))
 }
 
+// Дописать раздел Инфо
 func (b *Bot) handleInfo(msg *tgbotapi.Message) {
 	b.sendMessage(msg.Chat.ID, "Информация будет добавлена позже.")
 }

@@ -33,7 +33,7 @@ func createTables(db *sql.DB) {
     CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         user_id INTEGER NOT NULL,
-        contact TEXT NOT NULL,
+        contact TEXT,
         subscribed INTEGER NOT NULL,
         admin INTEGER NOT NULL
     );
@@ -42,12 +42,17 @@ func createTables(db *sql.DB) {
 }
 
 func (r *Repository) SaveContact(userID int, contact string) error {
-	if r.UserExists(userID) {
-		return nil // Пользователь уже существует, ничего не делаем
-	}
+	query := `UPDATE users SET contact = ? WHERE user_id = ?`
+	_, err := r.db.Exec(query, contact, userID)
+	return err
+}
 
-	query := `INSERT INTO users (user_id, contact, subscribed, admin) VALUES (?, ?, ?, ?)`
-	_, err := r.db.Exec(query, userID, contact, 0, 0)
+func (r *Repository) AddUserIfNotExists(userID int) error {
+	if r.UserExists(userID) {
+		return nil
+	}
+	query := `INSERT INTO users (user_id, subscribed, admin) VALUES (?, 0, 0)`
+	_, err := r.db.Exec(query, userID)
 	return err
 }
 
