@@ -90,7 +90,7 @@ func (s *Service) AddUserIfNotExists(userID int) error {
 
 func (s *Service) CheckSubscription(userID int) (bool, error) {
 	url := fmt.Sprintf("https://api.telegram.org/bot%s/getChatMember?chat_id=%s&user_id=%d", s.BotToken, s.ChannelUsername, userID)
-	log.Printf("Проверка подписки пользователя %d: URL = %s", userID, url)
+	log.Printf("Проверка подписки пользователя %d:", userID)
 	resp, err := http.Get(url)
 	if err != nil {
 		log.Printf("Ошибка запроса к API: %v", err)

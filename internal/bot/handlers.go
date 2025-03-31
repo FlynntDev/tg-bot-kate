@@ -26,7 +26,7 @@ func (b *Bot) handleMessage(msg *tgbotapi.Message) {
 		}
 	case "Добавить кодовое слово":
 		if b.svc.CheckAdmin(int(msg.From.ID)) {
-			b.sendMessage(msg.Chat.ID, "Пожалуйста, отправьте кодовое слово и путь к файлу в формате: keyword filepath")
+			b.sendMessage(msg.Chat.ID, "Пожалуйста, отправьте кодовое слово и путь к файлу в формате: слово /путь к файлу. Пример: test test.txt")
 		} else {
 			b.sendMessage(msg.Chat.ID, "У вас нет прав для выполнения этой команды.")
 		}
@@ -151,7 +151,7 @@ func (b *Bot) handleStatistics(msg *tgbotapi.Message) {
 func (b *Bot) handleAddFile(msg *tgbotapi.Message) {
 	parts := strings.SplitN(msg.Text, " ", 2)
 	if len(parts) != 2 {
-		b.sendMessage(msg.Chat.ID, "Ошибка формата. Пожалуйста, отправьте кодовое слово и путь к файлу в формате: keyword filepath")
+		b.sendMessage(msg.Chat.ID, "Ошибка формата. Пожалуйста, отправьте кодовое слово и путь к файлу формате: слово /путь к файлу. Пример: test test.txt")
 		return
 	}
 
