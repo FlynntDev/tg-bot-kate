@@ -173,6 +173,7 @@ func (b *Bot) handleAddFile(msg *tgbotapi.Message) {
 	b.sendMessage(msg.Chat.ID, fmt.Sprintf("Файл %s успешно добавлен для кодового слова %s.", filePath, keyword))
 }
 
+// Дописать раздел Инфо
 func (b *Bot) handleInfo(msg *tgbotapi.Message) {
 	b.sendMessage(msg.Chat.ID, "Информация будет добавлена позже.")
 }
